@@ -11,3 +11,4 @@ pub mod slices;
 pub mod functions_control_flow;
 pub mod structs;
 pub mod enums;
+pub mod pattern_matching;
