@@ -1,0 +1,3 @@
+# Keep `mod` declarations in the order written, not alphabetical:
+# the module order in each lib.rs IS the suggested reading order.
+reorder_modules = false
