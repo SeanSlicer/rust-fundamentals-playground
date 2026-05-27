@@ -13,3 +13,4 @@ pub mod structs;
 pub mod enums;
 pub mod pattern_matching;
 pub mod error_handling;
+pub mod collections;
