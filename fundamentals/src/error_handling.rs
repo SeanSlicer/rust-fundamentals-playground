@@ -60,3 +60,120 @@ pub fn parse_known_good() -> i32 {
     "42".parse().expect("literal is a valid i32")
 }
 
+// ---------------------------------------------------------------------------
+// Custom error types
+// ---------------------------------------------------------------------------
+// String errors don't compose: callers can't match on them and they
+// lose the underlying cause. The idiomatic upgrade is an error enum
+// with one variant per failure mode, implementing Display and Error.
+
+use std::fmt;
+
+#[derive(Debug, PartialEq)]
+pub enum TemperatureError {
+    /// Wraps the std parse error so the cause isn't thrown away.
+    NotANumber(std::num::ParseFloatError),
+    /// Domain validation: physically impossible value.
+    BelowAbsoluteZero(f64),
+}
+
+impl fmt::Display for TemperatureError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TemperatureError::NotANumber(e) => write!(f, "not a number: {e}"),
+            TemperatureError::BelowAbsoluteZero(c) => {
+                write!(f, "{c}°C is below absolute zero (-273.15°C)")
+            }
+        }
+    }
+}
+
+// Implementing std::error::Error makes the type interoperable with
+// the wider ecosystem (Box<dyn Error>, anyhow, error reporters).
+impl std::error::Error for TemperatureError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            TemperatureError::NotANumber(e) => Some(e),
+            TemperatureError::BelowAbsoluteZero(_) => None,
+        }
+    }
+}
+
+// `From` is what powers `?`-conversion: with this impl, a function
+// returning TemperatureError can use `?` directly on a parse result
+// and the ParseFloatError is converted automatically.
+impl From<std::num::ParseFloatError> for TemperatureError {
+    fn from(e: std::num::ParseFloatError) -> Self {
+        TemperatureError::NotANumber(e)
+    }
+}
+
+/// Parse and validate a Celsius temperature. Note how clean the body
+/// is: `?` handles the parse failure via the From impl above, leaving
+/// only the domain logic visible.
+pub fn parse_celsius(input: &str) -> Result<f64, TemperatureError> {
+    let celsius: f64 = input.trim().parse()?; // ParseFloatError -> TemperatureError
+    if celsius < -273.15 {
+        return Err(TemperatureError::BelowAbsoluteZero(celsius));
+    }
+    Ok(celsius)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn divide_reports_division_by_zero() {
+        assert_eq!(divide(10.0, 4.0), Ok(2.5));
+        assert!(divide(1.0, 0.0).is_err());
+    }
+
+    #[test]
+    fn question_mark_propagates_errors() {
+        assert_eq!(average(&[1.0, 2.0, 3.0]), Ok(2.0));
+        assert!(average(&[]).is_err());
+    }
+
+    #[test]
+    fn option_to_result_conversion() {
+        assert_eq!(first_word_length("hello world"), Ok(5));
+        assert!(first_word_length("   ").is_err());
+    }
+
+    #[test]
+    fn expect_documents_impossibility() {
+        assert_eq!(parse_known_good(), 42);
+    }
+
+    #[test]
+    fn custom_errors_are_matchable() {
+        assert_eq!(parse_celsius(" 21.5 "), Ok(21.5));
+
+        // Callers can distinguish failure modes — impossible with
+        // String errors.
+        match parse_celsius("-300") {
+            Err(TemperatureError::BelowAbsoluteZero(c)) => assert_eq!(c, -300.0),
+            other => panic!("expected BelowAbsoluteZero, got {other:?}"),
+        }
+        assert!(matches!(
+            parse_celsius("warm"),
+            Err(TemperatureError::NotANumber(_))
+        ));
+    }
+
+    #[test]
+    fn custom_errors_display_nicely() {
+        let err = parse_celsius("-300").unwrap_err();
+        assert_eq!(err.to_string(), "-300°C is below absolute zero (-273.15°C)");
+    }
+}
+
+// Exercises
+// ---------
+// 1. Add a `TooHot(f64)` variant rejecting temperatures above 1000°C.
+//    The compiler will point you at every match needing a new arm.
+// 2. Write `fn read_number_from_file(path: &str) -> Result<i32, ...>`
+//    that needs to combine io::Error and ParseIntError into one enum.
+// 3. Replace the String errors in `divide`/`average` with a proper
+//    enum. Was anything lost? Anything gained?
