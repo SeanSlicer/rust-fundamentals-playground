@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "fundamentals",
+    "intermediate",
 ]
 
 [workspace.package]
