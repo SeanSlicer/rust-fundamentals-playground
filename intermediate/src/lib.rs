@@ -5,3 +5,4 @@
 //! any order.
 
 pub mod traits;
+pub mod generics;
