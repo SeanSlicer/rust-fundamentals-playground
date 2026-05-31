@@ -6,3 +6,4 @@
 
 pub mod traits;
 pub mod generics;
+pub mod lifetimes;
