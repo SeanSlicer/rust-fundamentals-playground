@@ -8,3 +8,4 @@ pub mod traits;
 pub mod generics;
 pub mod lifetimes;
 pub mod closures;
+pub mod smart_pointers;
