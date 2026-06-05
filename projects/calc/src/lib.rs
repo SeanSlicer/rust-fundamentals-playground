@@ -208,3 +208,78 @@ pub fn evaluate(input: &str) -> Result<f64, CalcError> {
     Ok(value)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn single_numbers_and_basic_ops() {
+        assert_eq!(evaluate("42"), Ok(42.0));
+        assert_eq!(evaluate("1 + 2"), Ok(3.0));
+        assert_eq!(evaluate("7 - 10"), Ok(-3.0));
+        assert_eq!(evaluate("6 * 7"), Ok(42.0));
+        assert_eq!(evaluate("9 / 2"), Ok(4.5));
+    }
+
+    #[test]
+    fn precedence_and_associativity() {
+        assert_eq!(evaluate("2 + 3 * 4"), Ok(14.0)); // not 20
+        assert_eq!(evaluate("10 - 2 - 3"), Ok(5.0)); // left assoc, not 11
+        assert_eq!(evaluate("100 / 10 / 2"), Ok(5.0)); // left assoc, not 20
+    }
+
+    #[test]
+    fn parentheses_override_precedence() {
+        assert_eq!(evaluate("(2 + 3) * 4"), Ok(20.0));
+        assert_eq!(evaluate("((1))"), Ok(1.0));
+    }
+
+    #[test]
+    fn unary_minus() {
+        assert_eq!(evaluate("-5"), Ok(-5.0));
+        assert_eq!(evaluate("--5"), Ok(5.0));
+        assert_eq!(evaluate("2 * -3"), Ok(-6.0));
+        assert_eq!(evaluate("-(1 + 2)"), Ok(-3.0));
+    }
+
+    #[test]
+    fn floats() {
+        assert_eq!(evaluate("1.5 + 2.25"), Ok(3.75));
+        assert_eq!(evaluate(".5 * 4"), Ok(2.0));
+    }
+
+    #[test]
+    fn every_error_variant_is_reachable() {
+        assert_eq!(evaluate("2 ^ 3"), Err(CalcError::UnexpectedChar('^')));
+        assert_eq!(
+            evaluate("1.2.3"),
+            Err(CalcError::InvalidNumber("1.2.3".into()))
+        );
+        assert_eq!(evaluate("1 +"), Err(CalcError::UnexpectedEnd));
+        assert_eq!(evaluate("1 / 0"), Err(CalcError::DivisionByZero));
+        assert_eq!(evaluate("1 2"), Err(CalcError::TrailingInput));
+        assert_eq!(
+            evaluate("(1 + 2"),
+            Err(CalcError::UnexpectedEnd) // closing paren never arrives
+        );
+        assert!(matches!(
+            evaluate("*3"),
+            Err(CalcError::UnexpectedToken(Token::Star))
+        ));
+    }
+
+    #[test]
+    fn empty_input_is_an_error() {
+        assert_eq!(evaluate(""), Err(CalcError::UnexpectedEnd));
+        assert_eq!(evaluate("   "), Err(CalcError::UnexpectedEnd));
+    }
+}
+
+// Exercises
+// ---------
+// 1. Add a `%` (remainder) operator at the same precedence as `*`.
+// 2. Add a `^` (power) operator — note it should be RIGHT-associative
+//    (2^3^2 = 512), which needs a different loop shape than expr/term.
+// 3. Split parsing from evaluation: make the parser return an AST enum
+//    (Expr::Number / Expr::BinaryOp / Expr::Negate) and write a
+//    separate `eval(&Expr) -> Result<f64, CalcError>`.
