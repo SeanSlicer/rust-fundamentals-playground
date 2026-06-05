@@ -9,3 +9,4 @@ pub mod generics;
 pub mod lifetimes;
 pub mod closures;
 pub mod smart_pointers;
+pub mod interior_mutability;
