@@ -10,3 +10,4 @@ pub mod lifetimes;
 pub mod closures;
 pub mod smart_pointers;
 pub mod interior_mutability;
+pub mod modules_demo;
