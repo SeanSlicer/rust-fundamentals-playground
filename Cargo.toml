@@ -4,7 +4,15 @@ members = [
     "fundamentals",
     "intermediate",
     "projects/calc",
+    "projects/todo",
 ]
 
 [workspace.package]
 edition = "2021"
+
+# Shared dependency versions. Individual crates opt in with
+# `serde = { workspace = true }` so the whole workspace stays on
+# one version of each library.
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
