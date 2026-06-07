@@ -6,6 +6,7 @@ members = [
     "projects/calc",
     "projects/todo",
     "projects/config-loader",
+    "projects/csv-parser",
 ]
 
 [workspace.package]
