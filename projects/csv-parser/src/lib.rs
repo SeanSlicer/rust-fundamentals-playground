@@ -189,3 +189,94 @@ pub fn parse(text: &str) -> Result<Document, CsvError> {
     Ok(Document { headers, rows })
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plain_fields_split_on_commas() {
+        assert_eq!(
+            parse_line("a,b,c", 1),
+            Ok(vec!["a".into(), "b".into(), "c".into()])
+        );
+    }
+
+    #[test]
+    fn empty_fields_are_preserved() {
+        assert_eq!(
+            parse_line("a,,c", 1),
+            Ok(vec!["a".into(), "".into(), "c".into()])
+        );
+        assert_eq!(parse_line(",", 1), Ok(vec!["".into(), "".into()]));
+        // One empty line = one empty field; CSV has no zero-field rows.
+        assert_eq!(parse_line("", 1), Ok(vec!["".into()]));
+    }
+
+    #[test]
+    fn quoted_fields_may_contain_commas() {
+        assert_eq!(
+            parse_line(r#"widget,"3,5 mm",cheap"#, 1),
+            Ok(vec!["widget".into(), "3,5 mm".into(), "cheap".into()])
+        );
+    }
+
+    #[test]
+    fn doubled_quotes_escape_quotes() {
+        assert_eq!(
+            parse_line(r#""she said ""hi""",x"#, 1),
+            Ok(vec![r#"she said "hi""#.into(), "x".into()])
+        );
+    }
+
+    #[test]
+    fn quote_errors_carry_positions() {
+        assert_eq!(
+            parse_line(r#"ab"cd"#, 7),
+            Err(CsvError::StrayQuote { line: 7, column: 3 })
+        );
+        assert_eq!(
+            parse_line(r#""never closed"#, 3),
+            Err(CsvError::UnterminatedQuote { line: 3 })
+        );
+    }
+
+    #[test]
+    fn document_parsing_validates_width() {
+        let doc = parse("name,age\nana,31\nbob,28\n").unwrap();
+        assert_eq!(doc.headers, ["name", "age"]);
+        assert_eq!(doc.rows.len(), 2);
+
+        let err = parse("name,age\nana\n").unwrap_err();
+        assert_eq!(
+            err,
+            CsvError::WrongFieldCount {
+                line: 2,
+                expected: 2,
+                found: 1
+            }
+        );
+    }
+
+    #[test]
+    fn column_extraction() {
+        let doc = parse("name,age\nana,31\nbob,28\n").unwrap();
+        assert_eq!(doc.column("age"), Some(vec!["31", "28"]));
+        assert_eq!(doc.column("height"), None);
+    }
+
+    #[test]
+    fn blank_lines_are_skipped() {
+        let doc = parse("name\n\nana\n\n").unwrap();
+        assert_eq!(doc.rows.len(), 1);
+    }
+}
+
+// Exercises
+// ---------
+// 1. The big one: support newlines inside quoted fields. parse_line's
+//    signature can't survive — design the replacement (hint: iterate
+//    chars of the whole document, or return "need more input").
+// 2. Add an iterator API: `fn records(text: &str) -> impl Iterator
+//    <Item = Result<Vec<String>, CsvError>> + '_` that parses lazily.
+// 3. Make the delimiter configurable (';' is common in Europe) without
+//    five copies of the state machine.
