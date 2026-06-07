@@ -1,0 +1,7 @@
+# Example configuration. Every key is optional — anything missing
+# falls back to the compiled-in default (see Config::default()).
+
+host = "0.0.0.0"
+port = 3000
+verbose = true
+allowed_origins = ["https://example.com", "https://staging.example.com"]
