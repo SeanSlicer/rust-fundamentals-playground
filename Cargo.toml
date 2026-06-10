@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "fundamentals",
     "intermediate",
+    "concurrency",
     "projects/calc",
     "projects/todo",
     "projects/config-loader",
