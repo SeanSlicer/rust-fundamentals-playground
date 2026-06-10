@@ -6,3 +6,4 @@
 //! code are the SAME errors that prevent races here.
 
 pub mod threads;
+pub mod channels;
